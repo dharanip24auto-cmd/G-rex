@@ -1,0 +1,89 @@
+import streamlit as st
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+
+st.set_page_config(page_title="hybrid highway energy system", layout="wide")
+st.title("hybrid renewable energy recovery system")
+st.markdown("energy recovery from vehicle-induced airflow combined with solar integration")
+st.sidebar.header("traffic conditions")
+vehicleSpeed = st.sidebar.slider("vehicle speed (km/h)", 0, 120, 60)
+trafficFlow = st.sidebar.slider("vehicles per minute", 0, 200, 50)
+st.sidebar.header("solar conditions")
+solarInput = st.sidebar.slider("solar irradiance (w/m²)", 0, 1000, 500)
+st.sidebar.header("battery state")
+batteryLevel = st.sidebar.slider("battery charge (%)", 0, 100, 40)
+speedMS = vehicleSpeed * 1000 / 3600
+airVelocity = 0.3 * speedMS  
+airDensity = 1.225
+turbineArea = 2
+windPower = 0.5 * airDensity * turbineArea * airVelocity**3
+windEffective = windPower * (trafficFlow / 60)
+panelEfficiency = 0.20
+panelArea = 2
+solarPower = solarInput * panelEfficiency * panelArea
+totalPower = windEffective + solarPower
+np.random.seed(7)
+samples = 120
+flowData = np.random.uniform(0, 200, samples)
+speedData = np.random.uniform(0, 120, samples)
+solarData = np.random.uniform(0, 1000, samples)
+energyDemand = (
+    0.55 * flowData
+    + 0.75 * speedData
+    + 0.28 * solarData
+    + np.random.normal(0, 25, samples)
+)
+X = np.column_stack((flowData, speedData, solarData))
+y = energyDemand
+model = LinearRegression()
+model.fit(X, y)
+predictedDemand = model.predict([[trafficFlow, vehicleSpeed, solarInput]])[0]
+st.header("energy generation results")
+c1, c2, c3 = st.columns(3)
+c1.metric("wind power (w)", f"{windEffective:.2f}")
+c2.metric("solar power (w)", f"{solarPower:.2f}")
+c3.metric("total power (w)", f"{totalPower:.2f}")
+st.header("ai demand prediction")
+st.metric("predicted demand (w)", f"{predictedDemand:.2f}")
+trainPred = model.predict(X)
+accuracy = r2_score(y, trainPred)
+st.metric("model accuracy (r²)", f"{accuracy:.2f}")
+st.subheader("feature influence on demand")
+featureNames = ["traffic flow", "vehicle speed", "solar irradiance"]
+weights = model.coef_
+fig1, ax1 = plt.subplots()
+ax1.bar(featureNames, weights)
+ax1.set_ylabel("influence weight")
+ax1.set_title("relative impact of inputs")
+st.pyplot(fig1)
+st.subheader("prediction consistency check")
+fig2, ax2 = plt.subplots()
+ax2.scatter(y, trainPred)
+ax2.set_xlabel("actual demand")
+ax2.set_ylabel("predicted demand")
+ax2.set_title("actual vs predicted comparison")
+st.pyplot(fig2)
+st.header("energy management decision")
+if totalPower > predictedDemand and batteryLevel < 80:
+    st.success("surplus detected — storing energy in battery")
+elif batteryLevel >= 80:
+    st.info("battery near capacity — transferring excess to grid")
+else:
+    st.warning("generation below demand — grid support required")
+energyKwh = totalPower / 1000
+co2Reduction = energyKwh * 0.82
+st.header("environmental impact")
+st.metric("estimated co₂ reduction (kg)", f"{co2Reduction:.2f}")
+st.header("generation breakdown")
+labels = ["wind", "solar"]
+values = [windEffective, solarPower]
+fig3, ax3 = plt.subplots()
+ax3.bar(labels, values)
+ax3.set_ylabel("power (w)")
+ax3.set_title("energy contribution comparison")
+st.pyplot(fig3)
+st.markdown("---")
+st.markdown("prototype demonstration of hybrid highway renewable recovery system")
