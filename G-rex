@@ -1,0 +1,28 @@
+import streamlit as st
+import numpy as np
+st.title("Hybrid renewable energy optimizer")
+
+st.header("Input weather conditions")
+
+windspeed = st.slider("Wind speed (m/s)", 0.0, 20.0, 5.0)
+solarirradiance = st.slider("Solar irradiance (W/m²)", 0.0, 1000.0, 500.0)
+batterylevel = st.slider("Battery level (%)", 0, 100, 50)
+
+windpower = 0.5 * 1.225 * 2 * (windspeed ** 3)
+solarpower = solarirradiance * 0.2 * 2
+
+totalpower = windpower + solarpower
+
+st.subheader("Predicted Energy Output")
+st.write(f"Wind Power: {windpower:.2f} W")
+st.write(f"Solar Power: {solarpower:.2f} W")
+st.write(f"Total Power: {totalpower:.2f} W")
+
+st.subheader("Optimization Recommendation")
+
+if totalpower > 1000 and batterylevel < 80:
+    st.success("Store excess energy in battery")
+elif batterylevel >= 80:
+    st.info("Battery full - Send energy to grid")
+else:
+    st.warning("Use energy for immediate demand")
